@@ -1,47 +1,30 @@
 import os
-from langchain.vectorstores import FAISS
-from embed import get_embeddings
-from chunking import chunk_text
+import json
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+from pathlib import Path
 
-def load_file(path):
-    with open(path, "r", encoding="utf-8") as f:
-        return f.read()
+SAVE_DIR = Path("data/edgar_sec_filings")
+INDEX_DIR = "faiss_index_all"
 
-def create_faiss_index(text_path, save_path="faiss_index"):
-    print(f"Loading and chunking {text_path}...")
-    text = load_file(text_path)
-    chunks = chunk_text(text)
-    print(f"Total chunks: {len(chunks)}")
+def load_docs_from_txt():
+    docs = []
+    for filepath in SAVE_DIR.glob("*.txt"):
+        with open(filepath, "r") as f:
+            content = f.read()
+        # Infer company name from filename (e.g., apple_chunk_0.txt)
+        company_name = filepath.stem.split("_chunk_")[0].capitalize()
+        docs.append(Document(page_content=content, metadata={"company": company_name}))
+    return docs
 
-    embeddings = get_embeddings()
-    print("Generating embeddings and building index...")
-    faiss_index = FAISS.from_texts(chunks, embeddings)
-
-    print(f"Saving FAISS index to {save_path}...")
-    faiss_index.save_local(save_path)
-
-def create_faiss_index_from_many(files, save_path="faiss_index_all"):
-    print(f"Loading and chunking {len(files)} files...")
-    all_chunks = []
-
-    for file_path in files:
-        text = load_file(file_path)
-        chunks = chunk_text(text)
-        all_chunks.extend(chunks)
-
-    print(f"Total chunks across files: {len(all_chunks)}")
-    embeddings = get_embeddings()
-    faiss_index = FAISS.from_texts(all_chunks, embeddings)
-    faiss_index.save_local(save_path)
-    print(f"Saved combined index to {save_path}")
-
-# if __name__ == "__main__":
-#     create_faiss_index("data/edgar_sec_filings/apple_10K.txt")
+def build_and_save_faiss_index():
+    docs = load_docs_from_txt()
+    print(f"Loaded {len(docs)} document chunks.")
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_documents(docs, embeddings)
+    vectorstore.save_local(INDEX_DIR)
+    print(f"FAISS index saved to '{INDEX_DIR}'")
 
 if __name__ == "__main__":
-    files = [
-        "data/edgar_sec_filings/apple_10K.txt",
-        "data/edgar_sec_filings/amazon_10K.txt"
-    ]
-    create_faiss_index_from_many(files)
-
+    build_and_save_faiss_index()

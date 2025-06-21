@@ -110,7 +110,8 @@ def save_to_file(text, company_name):
 if __name__ == "__main__":
     companies = {
         "apple": "0000320193",
-        "amazon": "0001018724"
+        "amazon": "0001018724",
+        "google": "0001652044" 
     }
 
     for name, cik in companies.items():

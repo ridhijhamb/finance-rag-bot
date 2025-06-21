@@ -22,28 +22,43 @@ def get_qa_chain(index):
         return_source_documents=True
     )
 
-# App UI
-st.title("📊 Finance Q&A RAG Chatbot")
+# Page config
+st.set_page_config(page_title="💸 Multitone Investment Assistant", page_icon="💸")
 
-tone = st.selectbox(
-    "Choose your experience level:",
-    ["Beginner", "Intermediate", "Expert"],
-    index=0
+# Sidebar
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/1/11/Finance_icon.png", width=100)
+st.sidebar.title("Multitone Investment Assistant")
+tone = st.sidebar.radio("Choose your experience level:", ["Beginner", "Intermediate", "Expert"])
+
+st.markdown(
+    f"""
+    <h1 style='text-align: center;'>💼 Investment Q&A Assistant</h1>
+    <p style='text-align: center; font-size: 16px;'>Ask questions grounded in Apple, Amazon, and Alphabet’s 10-K filings.</p>
+    <p style='text-align: center; font-size: 14px; color: gray;'>Response tone: <b>{tone}</b></p>
+    """,
+    unsafe_allow_html=True,
 )
 
-st.caption("Ask questions grounded in Apple + Amazon 10-K filings.")
-
-query = st.text_input("Ask your question:")
+# Input area
+query = st.text_input("🔎 What would you like to ask?", placeholder="e.g., What is Apple's revenue in 2023?")
 
 if query:
-    index = load_index()
-    qa_chain = get_qa_chain(index)
-    response = qa_chain(query)
+    with st.spinner("Thinking... 🤔"):
+        index = load_index()
+        qa_chain = get_qa_chain(index)
+        response = qa_chain({"query": query})
 
-    st.write("### 📎 Answer")
+    st.markdown("### 📎 Answer")
     st.success(response["result"])
 
-    st.write("### 🔍 Top Retrieved Chunks")
-    for i, doc in enumerate(response["source_documents"]):
-        st.markdown(f"**Chunk {i+1}**")
-        st.code(doc.page_content[:300] + "...", language="markdown")
+    with st.expander("🔍 View Retrieved Chunks"):
+        for i, doc in enumerate(response["source_documents"]):
+            st.markdown(f"**Chunk {i+1}:**")
+            st.code(doc.page_content[:500].strip() + " ...", language="markdown")
+
+# Footer
+st.markdown("---")
+st.markdown(
+    "<p style='text-align: center; font-size: 12px; color: gray;'>Built with ❤️ by Ridhi Jhamb</p>",
+    unsafe_allow_html=True,
+)
